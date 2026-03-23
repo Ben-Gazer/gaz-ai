@@ -1,0 +1,118 @@
+# Docker Compose overlay for hardened OpenClaw deployment
+#
+# This file is meant to be used alongside the Hostinger-managed OpenClaw
+# container. You can either:
+#   a) Use this as a reference to reconfigure the existing container
+#   b) Stop the Hostinger container and use this compose file directly
+#
+# Usage (standalone):
+#   docker compose -f docker-compose.hardened.yml up -d
+#
+# Replace YOUR_GATEWAY_TOKEN and OPENCLAW_PORT before deploying.
+
+services:
+  openclaw:
+    image: ghcr.io/openclaw/openclaw:latest
+    container_name: openclaw
+    restart: unless-stopped
+
+    environment:
+      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:?Set OPENCLAW_GATEWAY_TOKEN in .env}
+      - NODE_ENV=production
+
+    volumes:
+      - openclaw-data:/home/node/.openclaw
+      - openclaw-logs:/home/node/.openclaw/logs
+
+    networks:
+      - openclaw-net
+
+    ports:
+      - "127.0.0.1:${OPENCLAW_PORT:-18789}:18789"
+
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: '2.0'
+        reservations:
+          memory: 512m
+          cpus: '0.5'
+
+    security_opt:
+      - no-new-privileges:true
+
+    read_only: false
+    tmpfs:
+      - /tmp:size=256m
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+    command: ["node", "openclaw.mjs", "gateway", "--bind", "lan", "--allow-unconfigured"]
+
+  nginx:
+    image: nginx:alpine
+    container_name: openclaw-nginx
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+      # Uncomment when you set up SSL:
+      # - "443:443"
+
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Uncomment when you set up SSL:
+      # - /etc/letsencrypt:/etc/letsencrypt:ro
+      - nginx-logs:/var/log/nginx
+
+    networks:
+      - openclaw-net
+
+    depends_on:
+      openclaw:
+        condition: service_healthy
+
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: '0.5'
+
+    security_opt:
+      - no-new-privileges:true
+
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+      - /var/cache/nginx:size=64m
+      - /run:size=8m
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+networks:
+  openclaw-net:
+    driver: bridge
+
+volumes:
+  openclaw-data:
+    driver: local
+  openclaw-logs:
+    driver: local
+  nginx-logs:
+    driver: local
