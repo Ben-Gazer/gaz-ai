@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "jobs": [
+    {
+      "id": "dd770ea7-e522-4b62-95d6-43cbf32929e4",
+      "agentId": "main",
+      "sessionKey": "agent:main:main",
+      "name": "Weekly Team Time Log Review and Email",
+      "enabled": true,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 10 * * 1",
+        "tz": "Europe/London"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "EXECUTE the following steps now using your fetch and himalaya tools. Do NOT describe or plan — actually call each tool and complete the task.\n\n## Weekly Time Tracking Report\n\n### Credentials\n- Metabase URL: https://ops.gazer.agency\n- Metabase API Key: mb_Ou6aBf0G36ilc6jKQ+VQ87mJvxAuyulPsV6glmvvj0o=\n\n### Reporting Period\nToday is Monday. Reporting period = last Monday through last Sunday (7–1 days ago). Calculate exact dates now.\n\n### Staff Members\nAmy Scott, Ben Scott, Danielle Hartley, Dave Freeman, Gaz AI, Josie Robertson, Megan Brooks, Michael Potts, Rick Steckles\n\n### EXECUTE these steps\n\n**Step 1 — Find dashboard:** GET https://ops.gazer.agency/api/dashboard with header X-Api-Key. Find the Time Tracking dashboard id.\n\n**Step 2 — Explore dashboard structure:** GET https://ops.gazer.agency/api/dashboard/<id> — examine cards and filter field IDs for Person and Date.\n\n**Step 3 — Query each staff member:** For each of the 9 people, POST to the relevant card query endpoint with Person filter = that person and date range = reporting period. Record: Time Logged (h), Billable Time (h), Number of Time Entries, Completion Ratio (%), Billable Ratio (%).\n\n**Step 4 — Send email:** Compile a table sorted by Time Logged descending with a Team Total row. Use himalaya to send:\n- To: ben@gazer.agency\n- From: gaz@gazer.agency (account: gazer)\n- Subject: Weekly Time Tracking Report — [date range]\n- Body: the table + brief observations (zero-hour staff, over/under hours, outlier completion ratios)\n\nRun: himalaya message send --account gazer (pipe in MML-formatted message)\n\nDo not stop to ask questions. If an API endpoint is unexpected, explore /api/database, /api/table, /api/field to find the correct structure and proceed.",
+        "model": "openrouter/openai/gpt-4o",
+        "thinking": "medium",
+        "timeoutSeconds": 600
+      },
+      "delivery": {
+        "mode": "none"
+      }
+    }
+  ]
+}

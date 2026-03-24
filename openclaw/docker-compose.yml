@@ -1,0 +1,23 @@
+services:
+  openclaw:
+    env_file:
+    - .env
+    extra_hosts:
+    - host.docker.internal:host-gateway
+    image: ghcr.io/hostinger/hvps-openclaw:latest
+    init: true
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}.rule=Host(`${COMPOSE_PROJECT_NAME}.${TRAEFIK_HOST}`)
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}.entrypoints=websecure
+    - traefik.http.routers.${COMPOSE_PROJECT_NAME}.tls.certresolver=letsencrypt
+    - traefik.http.services.${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=${PORT}
+    ports:
+    - 127.0.0.1:${PORT}:${PORT}
+    restart: unless-stopped
+    volumes:
+    - ./data:/data
+    - ./data/linuxbrew:/home/linuxbrew
+    # Fix extension ownership on every start so globally-installed plugins
+    # (Composio, Oxylabs) are trusted by OpenClaw's security check
+    entrypoint: ["/bin/sh", "-c", "chown -R root:root /data/.openclaw/extensions && exec openclaw gateway"]
